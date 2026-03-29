@@ -24,3 +24,11 @@ data/
 ```
 
 Do not commit raw dataset files to git.
+
+If you use the Kaggle CLI, a typical workflow is:
+
+```bash
+mkdir -p data/raw
+kaggle competitions download -c ieee-fraud-detection -p data/raw
+unzip data/raw/ieee-fraud-detection.zip -d data/raw
+```

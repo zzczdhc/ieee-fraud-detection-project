@@ -29,9 +29,6 @@ outputs/
 *.pkl
 *.joblib
 *.h5
-*.parquet
-*.csv
-*.feather
 
 # Logs
 *.log
