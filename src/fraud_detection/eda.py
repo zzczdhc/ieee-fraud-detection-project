@@ -12,37 +12,40 @@ PLOT_COLORS = {
     "navy": "#16324F",
     "blue": "#2D6A8D",
     "teal": "#2A9D8F",
-    "gold": "#E9C46A",
-    "coral": "#E76F51",
+    "gold": "#C8A951",
+    "coral": "#C95A49",
     "sand": "#F4EBD0",
     "ink": "#102A43",
-    "muted": "#6C7A89",
+    "muted": "#6B7280",
 }
 
 
 def set_plot_theme() -> None:
     sns.set_theme(
-        context="talk",
+        context="notebook",
         style="whitegrid",
-        palette=[PLOT_COLORS["navy"], PLOT_COLORS["teal"], PLOT_COLORS["gold"], PLOT_COLORS["coral"]],
+        palette=[PLOT_COLORS["navy"], PLOT_COLORS["blue"], PLOT_COLORS["teal"], PLOT_COLORS["coral"]],
     )
     plt.rcParams.update(
         {
-            "figure.facecolor": "#F7F4ED",
-            "axes.facecolor": "#F7F4ED",
-            "axes.edgecolor": "#D9D3C7",
+            "figure.facecolor": "#FFFFFF",
+            "axes.facecolor": "#FFFFFF",
+            "savefig.facecolor": "#FFFFFF",
+            "axes.edgecolor": "#D1D5DB",
             "axes.titleweight": "bold",
-            "axes.titlepad": 12,
+            "axes.titlepad": 10,
             "axes.labelcolor": PLOT_COLORS["ink"],
-            "axes.titlesize": 16,
-            "axes.labelsize": 12,
-            "grid.color": "#DDD5C7",
-            "grid.alpha": 0.65,
+            "axes.titlesize": 14,
+            "axes.labelsize": 11,
+            "grid.color": "#E5E7EB",
+            "grid.alpha": 0.9,
+            "grid.linewidth": 0.8,
             "xtick.color": PLOT_COLORS["ink"],
             "ytick.color": PLOT_COLORS["ink"],
             "text.color": PLOT_COLORS["ink"],
             "legend.frameon": False,
             "figure.autolayout": False,
+            "font.size": 11,
         }
     )
 
