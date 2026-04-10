@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from sklearn.metrics import (
+    accuracy_score,
     average_precision_score,
     balanced_accuracy_score,
     brier_score_loss,
@@ -36,6 +37,7 @@ def compute_classification_metrics(
         "average_precision": _safe_metric(average_precision_score, y_true, y_score),
         "log_loss": _safe_metric(log_loss, y_true, y_score),
         "brier_score": _safe_metric(brier_score_loss, y_true, y_score),
+        "accuracy": accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred, zero_division=0),
         "recall": recall_score(y_true, y_pred, zero_division=0),
         "f1": f1_score(y_true, y_pred, zero_division=0),
