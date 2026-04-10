@@ -7,12 +7,11 @@ from pathlib import Path
 from .config import OUTPUTS_DIR, ensure_outputs_dir
 
 
-def run_baseline(
+def fit_baseline_experiment(
     sample_size: int | None = None,
     test_size: float = 0.2,
     random_state: int = 42,
     missing_threshold: float = 0.95,
-    output_path: Path | str | None = None,
 ) -> dict[str, object]:
     from sklearn.linear_model import LogisticRegression
     from sklearn.model_selection import train_test_split
@@ -20,7 +19,7 @@ def run_baseline(
 
     from .data import load_train_data, split_features_target, summarize_frame
     from .features import build_preprocessor, drop_high_missing_columns
-    from .metrics import compute_classification_metrics
+    from .metrics import build_threshold_metrics_table, compute_classification_metrics
 
     data = load_train_data(sample_size=sample_size, random_state=random_state)
     dataset_summary = summarize_frame(data)
@@ -57,15 +56,50 @@ def run_baseline(
 
     validation_scores = pipeline.predict_proba(x_valid)[:, 1]
     metrics = compute_classification_metrics(y_valid, validation_scores)
+    threshold_table = build_threshold_metrics_table(y_valid, validation_scores)
+    best_f1_row = threshold_table.sort_values("f1", ascending=False).iloc[0].to_dict()
+
+    return {
+        "pipeline": pipeline,
+        "dataset_summary": dataset_summary,
+        "x_train": x_train,
+        "x_valid": x_valid,
+        "y_train": y_train,
+        "y_valid": y_valid,
+        "validation_scores": validation_scores,
+        "dropped_high_missing_columns": dropped_columns,
+        "numeric_features": numeric_features,
+        "categorical_features": categorical_features,
+        "metrics": metrics,
+        "threshold_table": threshold_table,
+        "best_f1_threshold": best_f1_row,
+    }
+
+
+def run_baseline(
+    sample_size: int | None = None,
+    test_size: float = 0.2,
+    random_state: int = 42,
+    missing_threshold: float = 0.95,
+    output_path: Path | str | None = None,
+) -> dict[str, object]:
+    experiment = fit_baseline_experiment(
+        sample_size=sample_size,
+        test_size=test_size,
+        random_state=random_state,
+        missing_threshold=missing_threshold,
+    )
 
     results: dict[str, object] = {
-        "dataset_summary": dataset_summary,
-        "train_rows": int(len(x_train)),
-        "validation_rows": int(len(x_valid)),
-        "dropped_high_missing_columns": dropped_columns,
-        "n_numeric_features": len(numeric_features),
-        "n_categorical_features": len(categorical_features),
-        "metrics": metrics,
+        "dataset_summary": experiment["dataset_summary"],
+        "train_rows": int(len(experiment["x_train"])),
+        "validation_rows": int(len(experiment["x_valid"])),
+        "dropped_high_missing_columns": experiment["dropped_high_missing_columns"],
+        "n_numeric_features": len(experiment["numeric_features"]),
+        "n_categorical_features": len(experiment["categorical_features"]),
+        "metrics": experiment["metrics"],
+        "best_f1_threshold": experiment["best_f1_threshold"],
+        "threshold_table": experiment["threshold_table"].to_dict(orient="records"),
     }
 
     output_file = _resolve_output_path(output_path)
