@@ -119,7 +119,7 @@ def add_tree_features_v2(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def add_missing_indicators(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+def add_missing_indicator_features(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     df = df.copy()
     valid_cols = [col for col in columns if col in df.columns]
     if not valid_cols:
@@ -249,12 +249,15 @@ def fit_tree_preprocessor_v2(
     else:
         group_amount_maps = {}
 
-    if add_missing_indicators:
+    use_missing_indicators = add_missing_indicators
+    use_group_amount_features = add_group_amount_features
+
+    if use_missing_indicators:
         missing_indicator_cols = choose_missing_indicator_cols(df)
     else:
         missing_indicator_cols = []
 
-    df = add_missing_indicators(df, missing_indicator_cols)
+    df = add_missing_indicator_features(df, missing_indicator_cols)
     df = apply_count_encoding(df, count_maps)
     df = apply_group_amount_maps(df, group_amount_maps)
 
@@ -276,8 +279,8 @@ def fit_tree_preprocessor_v2(
         group_amount_maps=group_amount_maps,
         numeric_medians=numeric_medians,
         feature_columns=feature_columns,
-        add_missing_indicators=add_missing_indicators,
-        add_group_amount_features=add_group_amount_features,
+        add_missing_indicators=use_missing_indicators,
+        add_group_amount_features=use_group_amount_features,
     )
 
 
@@ -290,7 +293,7 @@ def transform_tree_preprocessor_v2(
     out = out.drop(columns=artifacts.drop_cols, errors="ignore")
 
     if artifacts.add_missing_indicators:
-        out = add_missing_indicators(out, artifacts.missing_indicator_cols)
+        out = add_missing_indicator_features(out, artifacts.missing_indicator_cols)
 
     out = apply_count_encoding(out, artifacts.count_maps)
 
