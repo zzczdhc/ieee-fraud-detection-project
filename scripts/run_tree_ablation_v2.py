@@ -11,7 +11,10 @@ from sklearn.metrics import roc_auc_score, average_precision_score
 from xgboost import XGBClassifier
 
 # adapt these imports to your repo if names differ
-from src.fraud_detection.data import load_merged_data, make_time_validation_split
+from src.fraud_detection.data_prep_safe import (
+    load_merged_data_safe,
+    make_time_validation_split,
+)
 from src.fraud_detection.tree_preprocessing_v2 import (
     fit_tree_preprocessor_v2,
     transform_tree_preprocessor_v2,
@@ -77,7 +80,7 @@ def evaluate_variant(train_part, valid_part, name, add_missing_indicators, add_g
 
 
 def main():
-    train_df, _ = load_merged_data()
+    train_df, _ = load_merged_data_safe()
     train_part, valid_part = make_time_validation_split(train_df)
 
     results = []
