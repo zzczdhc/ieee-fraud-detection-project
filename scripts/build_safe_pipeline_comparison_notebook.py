@@ -125,6 +125,21 @@ def build_notebook():
                 return precision_at_k, recall_at_k
 
 
+            def build_topk_summary(y_true, y_score, label, fracs=(0.01, 0.03, 0.05, 0.10)):
+                rows = []
+                for frac in fracs:
+                    precision_at_k, recall_at_k = top_k_metrics(y_true, y_score, frac=frac)
+                    rows.append(
+                        {
+                            "model": label,
+                            "top_pct": f"{int(frac * 100)}%",
+                            "precision": float(precision_at_k),
+                            "recall": float(recall_at_k),
+                        }
+                    )
+                return rows
+
+
             def evaluate_variant(train_part, valid_part, name, add_missing_indicators, add_group_amount_features):
                 artifacts = fit_tree_preprocessor_v2(
                     train_part,
@@ -155,6 +170,7 @@ def build_notebook():
                 valid_proba = model.predict_proba(X_valid)[:, 1]
 
                 precision_at_5, recall_at_5 = top_k_metrics(y_valid, valid_proba, frac=0.05)
+                topk_rows = build_topk_summary(y_valid, valid_proba, name)
 
                 artifact_summary = {
                     "variant": name,
@@ -177,7 +193,7 @@ def build_notebook():
                     "recall_at_top_5pct": float(recall_at_5),
                     "n_features": int(X_train.shape[1]),
                 }
-                return metric_row, artifact_summary
+                return metric_row, artifact_summary, topk_rows
             """
         ),
         code_cell(
@@ -200,6 +216,7 @@ def build_notebook():
 
             metric_rows = []
             artifact_rows = []
+            v2_topk_rows = []
 
             variant_specs = [
                 ("v2_core", False, False),
@@ -208,7 +225,7 @@ def build_notebook():
             ]
 
             for name, add_missing_indicators, add_group_amount_features in variant_specs:
-                metric_row, artifact_row = evaluate_variant(
+                metric_row, artifact_row, topk_rows = evaluate_variant(
                     train_part,
                     valid_part,
                     name=name,
@@ -217,6 +234,7 @@ def build_notebook():
                 )
                 metric_rows.append(metric_row)
                 artifact_rows.append(artifact_row)
+                v2_topk_rows.extend(topk_rows)
 
             results = pd.DataFrame(metric_rows).sort_values("roc_auc", ascending=False).reset_index(drop=True)
             artifact_summary = pd.DataFrame(artifact_rows)
@@ -445,6 +463,84 @@ def build_notebook():
             axes[1].set_xlabel("")
             axes[1].set_ylabel("score")
             axes[1].tick_params(axis="x", rotation=20)
+            axes[1].legend(title="")
+
+            plt.tight_layout()
+            plt.show()
+            """
+        ),
+        markdown_cell(
+            """
+            ## Top 1%, 3%, 5%, And 10% Checks
+
+            `average precision` and `precision@top_5%` are not the same kind of metric.
+
+            - `average precision` summarizes the full precision-recall ranking curve
+            - `precision@top_k%` only looks at a narrow slice near the top of the ranked list
+
+            So if they do not line up perfectly, that is not necessarily a contradiction. The table below makes that easier to inspect directly by checking several top-risk cutoffs.
+            """
+        ),
+        code_cell(
+            """
+            baseline_topk = build_topk_summary(
+                baseline_experiment["y_valid"].to_numpy(),
+                baseline_experiment["validation_scores"],
+                "BaselineLogistic",
+            )
+
+            earlier_xgb_topk = build_topk_summary(
+                np.asarray(tree_benchmark["y_valid"]),
+                tree_benchmark["prediction_frame"]["XGBoost"].to_numpy(),
+                "EarlierXGBoost",
+            )
+
+            topk_comparison = pd.DataFrame(baseline_topk + earlier_xgb_topk + v2_topk_rows)
+            topk_comparison["model"] = pd.Categorical(
+                topk_comparison["model"],
+                categories=["BaselineLogistic", "EarlierXGBoost", "v2_core", "v2_plus_missing_flags", "v2_full"],
+                ordered=True,
+            )
+            topk_comparison["top_pct"] = pd.Categorical(
+                topk_comparison["top_pct"],
+                categories=["1%", "3%", "5%", "10%"],
+                ordered=True,
+            )
+            topk_comparison = topk_comparison.sort_values(["model", "top_pct"]).reset_index(drop=True)
+
+            display(topk_comparison.style.hide(axis="index"))
+
+            topk_plot = topk_comparison.melt(
+                id_vars=["model", "top_pct"],
+                value_vars=["precision", "recall"],
+                var_name="metric",
+                value_name="value",
+            )
+
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5), sharey=False)
+
+            sns.barplot(
+                data=topk_plot.loc[topk_plot["metric"] == "precision"],
+                x="top_pct",
+                y="value",
+                hue="model",
+                ax=axes[0],
+            )
+            axes[0].set_title("Precision at top-risk cutoffs")
+            axes[0].set_xlabel("top ranked fraction")
+            axes[0].set_ylabel("precision")
+            axes[0].legend(title="")
+
+            sns.barplot(
+                data=topk_plot.loc[topk_plot["metric"] == "recall"],
+                x="top_pct",
+                y="value",
+                hue="model",
+                ax=axes[1],
+            )
+            axes[1].set_title("Recall at top-risk cutoffs")
+            axes[1].set_xlabel("top ranked fraction")
+            axes[1].set_ylabel("recall")
             axes[1].legend(title="")
 
             plt.tight_layout()
