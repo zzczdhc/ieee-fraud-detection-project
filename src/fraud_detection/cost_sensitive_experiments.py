@@ -259,6 +259,12 @@ def build_shap_diagnostics(
 
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(x_sample)
+    expected_value = explainer.expected_value
+
+    if isinstance(expected_value, list):
+        expected_value = expected_value[-1]
+    if isinstance(expected_value, np.ndarray):
+        expected_value = np.asarray(expected_value).reshape(-1)[-1]
 
     if isinstance(shap_values, list):
         shap_matrix = np.asarray(shap_values[-1])
@@ -307,6 +313,7 @@ def build_shap_diagnostics(
         "dependence_frame": dependence_frame,
         "top_feature": top_feature,
         "row_count": int(len(x_sample)),
+        "expected_value": float(expected_value),
     }
 
 
